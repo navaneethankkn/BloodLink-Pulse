@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BloodLink Pulse | Emergency Blood Donor & Request Matcher</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        blood: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                            950: '#450a0a'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+    <!-- Custom Style System -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        code, pre, .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-red-600 selection:text-white">
+
+    <!-- Top Emergency Navigation & Global Status Header -->
+    <header class="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            
+            <!-- Branding -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-700 to-red-500 flex items-center justify-center shadow-lg shadow-red-900/30 animate-heartbeat">
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl font-extrabold tracking-tight text-white">BloodLink <span class="text-red-500">Pulse</span></span>
+                        <span class="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-red-950 text-red-400 border border-red-800">EMERGENCY CORE</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Smart Blood Compatibility Matcher & Urgent Dispatcher</p>
+                </div>
+            </div>
+
+            <!-- Global Status Pills & Action Buttons -->
+            <div class="flex items-center gap-3 flex-wrap">
+                <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60 text-xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-slate-300">Carrier SMS Gateway:</span>
+                    <span class="text-emerald-400 font-semibold font-mono">cURL READY</span>
+                </div>
+
+                <button id="btn-test-sms" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5">
+                    <span>📡 Test SMS cURL</span>
+                </button>
+
+                <button id="btn-add-donor" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-600 transition flex items-center gap-1.5">
+                    <span>+ Register Donor</span>
+                </button>
+
+                <button id="btn-add-request" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 transition flex items-center gap-1.5">
+                    <span>🚨 Request Blood</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Application Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- KPI Executive Summary Cards -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Available Donors</p>
+                        <h3 id="kpi-total-donors" class="text-3xl font-extrabold text-white mt-1">--</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-red-950/60 border border-red-800/50 flex items-center justify-center text-red-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-3 flex items-center gap-1">
+                    <span class="text-emerald-400 font-semibold">90-day interval</span> verification active
+                </p>
+            </div>
+
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Emergency Requests</p>
+                        <h3 id="kpi-emergency-requests" class="text-3xl font-extrabold text-white mt-1">--</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-amber-950/60 border border-amber-800/50 flex items-center justify-center text-amber-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-3 flex items-center gap-1">
+                    Hospitals & trauma care centers logged
+                </p>
+            </div>
+
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-red-400 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-red-500 radar-pulse-critical"></span>
+                            Critical Triage Queue
+                        </p>
+                        <h3 id="kpi-critical-triage" class="text-3xl font-extrabold text-red-400 mt-1">--</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-red-950 border border-red-800 flex items-center justify-center text-red-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-[11px] text-red-300/80 mt-3">Immediate life-threat priority matching</p>
+            </div>
+
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Dispatched SMS Alerts</p>
+                        <h3 id="kpi-dispatched-sms" class="text-3xl font-extrabold text-white mt-1">--</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-sky-950/60 border border-sky-800/50 flex items-center justify-center text-sky-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-3 flex items-center gap-1">
+                    Simulated carrier gateway via cURL
+                </p>
+            </div>
+
+        </section>
+
+        <!-- Navigation Tabs Bar -->
+        <nav class="flex items-center gap-2 p-1.5 rounded-xl bg-slate-900 border border-slate-800 overflow-x-auto">
+            <button class="nav-tab active px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center gap-2 whitespace-nowrap" data-tab="triage">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                <span>🚨 Emergency Triage & Requests</span>
+            </button>
+            <button class="nav-tab px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center gap-2 whitespace-nowrap" data-tab="donors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span>👥 Registered Donors Directory</span>
+            </button>
+            <button class="nav-tab px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center gap-2 whitespace-nowrap" data-tab="matcher">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+                <span>🧬 Smart Compatibility Matrix</span>
+            </button>
+            <button class="nav-tab px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center gap-2 whitespace-nowrap" data-tab="logs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                <span>📡 SMS Gateway & Audit Logs</span>
+            </button>
+        </nav>
+
+        <!-- TAB 1: Emergency Requests & Triage -->
+        <section id="tab-triage" class="tab-content-panel space-y-4">
+            
+            <!-- Filters & Quick Actions -->
+            <div class="glass-panel p-4 rounded-xl flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+                    <div class="relative flex-1 min-w-[180px]">
+                        <input id="search-request" type="text" placeholder="Search patient, hospital, city..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500">
+                    </div>
+
+                    <select id="filter-request-urgency" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-red-500">
+                        <option value="">All Urgency Triage</option>
+                        <option value="Critical">🚨 Critical</option>
+                        <option value="High">⚠️ High</option>
+                        <option value="Medium">● Medium</option>
+                    </select>
+
+                    <select id="filter-request-blood" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-red-500">
+                        <option value="">All Blood Types</option>
+                        <option value="O-">O- (Rare Recipient)</option>
+                        <option value="O+">O+</option>
+                        <option value="A-">A-</option>
+                        <option value="A+">A+</option>
+                        <option value="B-">B-</option>
+                        <option value="B+">B+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="AB+">AB+ (Universal Recipient)</option>
+                    </select>
+
+                    <select id="filter-request-status" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-red-500">
+                        <option value="">All Statuses</option>
+                        <option value="Pending">Pending Match</option>
+                        <option value="Matched">Matched</option>
+                        <option value="Fulfilled">Fulfilled</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button id="btn-refresh-requests" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold border border-slate-700 transition" title="Reload requests table">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Requests Table -->
+            <div class="glass-panel rounded-xl overflow-hidden border border-slate-800 shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900/90 border-b border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                <th class="px-4 py-3.5">Urgency Triage</th>
+                                <th class="px-4 py-3.5">Patient / Case</th>
+                                <th class="px-4 py-3.5">Blood Needed</th>
+                                <th class="px-4 py-3.5 text-center">Units</th>
+                                <th class="px-4 py-3.5">Hospital Facility & Contact</th>
+                                <th class="px-4 py-3.5">Status</th>
+                                <th class="px-4 py-3.5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requests-table-body" class="divide-y divide-slate-800/60">
+                            <!-- Populated dynamically via AJAX -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: Registered Donors -->
+        <section id="tab-donors" class="tab-content-panel space-y-4 hidden">
+            
+            <!-- Filters Bar -->
+            <div class="glass-panel p-4 rounded-xl flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+                    <div class="relative flex-1 min-w-[180px]">
+                        <input id="search-donor" type="text" placeholder="Search donor by name, phone, city..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500">
+                    </div>
+
+                    <select id="filter-donor-blood" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-red-500">
+                        <option value="">All Blood Types</option>
+                        <option value="O-">O- (Universal Donor)</option>
+                        <option value="O+">O+</option>
+                        <option value="A-">A-</option>
+                        <option value="A+">A+</option>
+                        <option value="B-">B-</option>
+                        <option value="B+">B+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="AB+">AB+</option>
+                    </select>
+
+                    <select id="filter-donor-status" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-red-500">
+                        <option value="">All Statuses</option>
+                        <option value="Available">Available (>= 90 Days)</option>
+                        <option value="Cooldown">Cooldown (< 90 Days)</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button id="btn-refresh-donors" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold border border-slate-700 transition" title="Reload donors table">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Donors Table -->
+            <div class="glass-panel rounded-xl overflow-hidden border border-slate-800 shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900/90 border-b border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                <th class="px-4 py-3.5">Donor Profile</th>
+                                <th class="px-4 py-3.5">Blood Type</th>
+                                <th class="px-4 py-3.5">10-Digit Phone</th>
+                                <th class="px-4 py-3.5">City Location</th>
+                                <th class="px-4 py-3.5">Last Donation Date</th>
+                                <th class="px-4 py-3.5">Eligibility Status</th>
+                                <th class="px-4 py-3.5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="donors-table-body" class="divide-y divide-slate-800/60">
+                            <!-- Populated dynamically via AJAX -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: Smart Blood Compatibility Matrix -->
+        <section id="tab-matcher" class="tab-content-panel space-y-6 hidden">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Interactive Calculator Widget -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 space-y-5">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold uppercase px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800">INTERACTIVE CALCULATOR</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mt-1">Smart RBC Compatibility Engine</h3>
+                        <p class="text-xs text-slate-400 mt-1">Select any ABO/Rh blood type to view instant erythrocyte compatibility routing rules.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5">Select Blood Group</label>
+                        <select id="matrix-blood-select" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-red-500">
+                            <option value="O-">O- (Universal Donor)</option>
+                            <option value="O+">O+</option>
+                            <option value="A-">A-</option>
+                            <option value="A+">A+</option>
+                            <option value="B-">B-</option>
+                            <option value="B+">B+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="AB+">AB+ (Universal Recipient)</option>
+                        </select>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+                        <div>
+                            <div class="text-xs uppercase font-bold text-emerald-400">Can Safely Donate To:</div>
+                            <div id="matrix-can-give" class="flex flex-wrap gap-1.5 mt-2">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <div class="border-t border-slate-800 pt-3">
+                            <div class="text-xs uppercase font-bold text-sky-400">Can Safely Receive From:</div>
+                            <div id="matrix-can-receive" class="flex flex-wrap gap-1.5 mt-2">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-xs text-slate-400 leading-relaxed bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                        <strong class="text-slate-200">Clinical Rule:</strong> Red blood cell transfusions must avoid host antibodies targeting donor A/B antigens or Rh(D) factor. Individuals with <strong>O-</strong> red cells lack A, B, and Rh antigens, rendering them universal donors in emergency trauma.
+                    </div>
+                </div>
+
+                <!-- Full Relational Compatibility Reference Matrix Table -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800 lg:col-span-2 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-base font-bold text-white">Full ABO & Rh Clinical Compatibility Matrix</h3>
+                            <p class="text-xs text-slate-400">Recipient Blood Group (Vertical) vs Donor Blood Group (Horizontal)</p>
+                        </div>
+                        <span class="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-mono">WHO Standards</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-center text-xs font-mono border-collapse">
+                            <thead>
+                                <tr class="bg-slate-900 border-b border-slate-800">
+                                    <th class="p-2 text-left text-slate-400 font-sans">Recipient \ Donor</th>
+                                    <th class="p-2 text-red-400 font-black">O-</th>
+                                    <th class="p-2">O+</th>
+                                    <th class="p-2">A-</th>
+                                    <th class="p-2">A+</th>
+                                    <th class="p-2">B-</th>
+                                    <th class="p-2">B+</th>
+                                    <th class="p-2">AB-</th>
+                                    <th class="p-2">AB+</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800">
+                                <tr>
+                                    <td class="p-2 text-left font-sans font-bold text-white">O- (Rare Recipient)</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2 text-left font-sans font-bold text-white">O+</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2 text-left font-sans font-bold text-white">A-</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2 text-left font-sans font-bold text-white">A+</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2 text-left font-sans font-bold text-white">B-</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2 text-left font-sans font-bold text-white">B+</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2 text-left font-sans font-bold text-white">AB-</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-no">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2 text-left font-sans font-bold text-white">AB+ (Universal Recipient)</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                    <td class="p-2 compat-cell-yes">✓ YES</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 4: SMS Gateway & Match Audit Logs -->
+        <section id="tab-logs" class="tab-content-panel space-y-4 hidden">
+            
+            <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-white">Emergency Match Logs & SMS Carrier Dispatch Audit</h3>
+                    <p class="text-xs text-slate-400">Real-time log of external cURL calls to JSONPlaceholder simulating telecom SMS carrier transmission.</p>
+                </div>
+                <button id="btn-refresh-logs" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold border border-slate-700 transition">
+                    🔄 Refresh Audit Trail
+                </button>
+            </div>
+
+            <div class="glass-panel rounded-xl overflow-hidden border border-slate-800 shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900/90 border-b border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                <th class="px-4 py-3.5">Log ID</th>
+                                <th class="px-4 py-3.5">Urgency</th>
+                                <th class="px-4 py-3.5">Patient Request</th>
+                                <th class="px-4 py-3.5">Target Donor</th>
+                                <th class="px-4 py-3.5">Carrier Status / Post ID</th>
+                                <th class="px-4 py-3.5">Timestamp</th>
+                                <th class="px-4 py-3.5 text-right">Receipt</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matches-table-body" class="divide-y divide-slate-800/60">
+                            <!-- Populated dynamically via AJAX -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 bg-slate-950 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
+            <div>
+                BloodLink Pulse &copy; 2026. Production-Ready Relational Medical Dispatcher.
+            </div>
+            <div class="flex items-center gap-4">
+                <span>Security: PDO Prepared Statements & Sanitization</span>
+                <span>cURL Gateway: Enabled</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL 1: Register / Edit Donor -->
+    <div id="modal-donor" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm hidden modal-overlay animate-fadeIn">
+        <div class="glass-modal max-w-lg w-full rounded-2xl shadow-2xl border border-slate-700 overflow-hidden">
+            
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+                <h3 id="modal-donor-title" class="text-base font-bold text-white">Register New Blood Donor</h3>
+                <button type="button" class="btn-close-modal text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+            </div>
+
+            <form id="form-donor" class="p-6 space-y-4" novalidate>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Full Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="name" placeholder="e.g., Alexander Wright" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 transition">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Blood Type <span class="text-red-500">*</span></label>
+                        <select name="blood_type" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 transition">
+                            <option value="">Select Blood Group</option>
+                            <option value="O-">O- (Universal Donor)</option>
+                            <option value="O+">O+</option>
+                            <option value="A-">A-</option>
+                            <option value="A+">A+</option>
+                            <option value="B-">B-</option>
+                            <option value="B+">B+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="AB+">AB+</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Contact Phone (10 digits) <span class="text-red-500">*</span></label>
+                        <input type="text" name="phone" placeholder="e.g., 5552345678" maxlength="14" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 transition">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Email Address <span class="text-red-500">*</span></label>
+                        <input type="email" name="email" placeholder="e.g., alex@lifelink.org" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">City Location <span class="text-red-500">*</span></label>
+                        <input type="text" name="city" placeholder="e.g., Metropolis" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">
+                        Last Donation Date (>= 90 Days interval check)
+                    </label>
+                    <input type="date" name="last_donation_date" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 transition">
+                    <p class="text-[11px] text-slate-400 mt-1">Leave blank if this is the donor's first time donating blood.</p>
+                </div>
+
+                <div class="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+                    <button type="button" class="btn-close-modal px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 transition">
+                        Save Donor Profile
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- MODAL 2: Create / Edit Emergency Blood Request -->
+    <div id="modal-request" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm hidden modal-overlay animate-fadeIn">
+        <div class="glass-modal max-w-lg w-full rounded-2xl shadow-2xl border border-slate-700 overflow-hidden">
+            
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+                <h3 id="modal-request-title" class="text-base font-bold text-white">Submit Emergency Blood Request</h3>
+                <button type="button" class="btn-close-modal text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+            </div>
+
+            <form id="form-request" class="p-6 space-y-4" novalidate>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Patient Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="patient_name" placeholder="e.g., Sarah Connor" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 transition">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Blood Type <span class="text-red-500">*</span></label>
+                        <select name="blood_type" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 transition">
+                            <option value="">Select Group</option>
+                            <option value="O-">O-</option>
+                            <option value="O+">O+</option>
+                            <option value="A-">A-</option>
+                            <option value="A+">A+</option>
+                            <option value="B-">B-</option>
+                            <option value="B+">B+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="AB+">AB+</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Units (1-20) <span class="text-red-500">*</span></label>
+                        <input type="number" name="units_needed" min="1" max="20" value="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Urgency Triage <span class="text-red-500">*</span></label>
+                        <select name="urgency" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold text-white focus:outline-none focus:border-red-500 transition">
+                            <option value="Critical" class="text-red-400 font-bold">🚨 Critical</option>
+                            <option value="High" class="text-amber-400 font-bold" selected>⚠️ High</option>
+                            <option value="Medium" class="text-emerald-400 font-bold">● Medium</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Hospital / Medical Center <span class="text-red-500">*</span></label>
+                        <input type="text" name="hospital_name" placeholder="e.g., Mount Sinai Trauma Unit" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">City <span class="text-red-500">*</span></label>
+                        <input type="text" name="city" placeholder="e.g., Metropolis" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Emergency Desk Contact Phone (10 digits) <span class="text-red-500">*</span></label>
+                    <input type="text" name="contact_phone" placeholder="e.g., 5559110001" maxlength="14" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Clinical Triage Notes (Optional)</label>
+                    <textarea name="notes" rows="2" placeholder="e.g., Surgery scheduled within 6 hours, traumatic injury..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 transition"></textarea>
+                </div>
+
+                <div class="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+                    <button type="button" class="btn-close-modal px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 transition">
+                        Submit Emergency Request
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- MODAL 3: Smart Blood Compatibility Matcher Studio -->
+    <div id="modal-match" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden modal-overlay animate-fadeIn">
+        <div class="glass-modal max-w-3xl w-full rounded-2xl shadow-2xl border border-slate-700 overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+                    <h3 class="text-base font-bold text-white">Smart Blood Compatibility Matcher & Urgent Dispatcher</h3>
+                </div>
+                <button type="button" class="btn-close-modal text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+            </div>
+
+            <div class="p-6 overflow-y-auto flex-1">
+                <div id="matcher-request-header">
+                    <!-- Request Summary Header injected dynamically -->
+                </div>
+
+                <div id="matcher-results-container">
+                    <!-- Ranked compatible donors injected dynamically -->
+                </div>
+            </div>
+
+            <div class="px-6 py-3 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between text-xs text-slate-400">
+                <span>Direct SMS dispatch triggers simulated carrier cURL transmission</span>
+                <button type="button" class="btn-close-modal px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium transition">
+                    Close Matcher
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL 4: SMS Carrier Dispatch Receipt Inspector -->
+    <div id="modal-sms-receipt" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden modal-overlay animate-fadeIn">
+        <div class="glass-modal max-w-xl w-full rounded-2xl shadow-2xl border border-slate-700 overflow-hidden">
+            
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-400 font-bold">📡</span>
+                    <h3 class="text-base font-bold text-white">External SMS Gateway Carrier Dispatch Receipt</h3>
+                </div>
+                <button type="button" class="btn-close-modal text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+            </div>
+
+            <div id="sms-receipt-content" class="p-6">
+                <!-- Injected dynamically -->
+            </div>
+
+            <div class="px-6 py-3 border-t border-slate-800 bg-slate-900/60 flex items-center justify-end">
+                <button type="button" class="btn-close-modal px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition">
+                    Done
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="assets/js/validation.js"></script>
+    <script src="assets/js/app.js"></script>
+
+</body>
+</html>

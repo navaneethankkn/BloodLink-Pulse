@@ -1,0 +1,229 @@
+/* ==========================================================================
+   BloodLink Pulse - Emergency Blood Donor & Request Matcher Design System
+   Modern Clinical Aesthetics • Tailwind Enhancements • Pulse Animations
+   ========================================================================== */
+
+:root {
+  --primary-red: #dc2626;
+  --primary-dark: #991b1b;
+  --blood-glow: rgba(220, 38, 38, 0.35);
+  --critical-color: #ef4444;
+  --high-color: #f59e0b;
+  --medium-color: #10b981;
+}
+
+/* Custom Scrollbar for Sleek Medical UI */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Heartbeat Logo Animation */
+@keyframes heartbeat {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.18); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.18); }
+  70% { transform: scale(1); }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.8s infinite ease-in-out;
+}
+
+/* Radar Pulse Ring for Critical Urgency */
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.radar-pulse-critical {
+  animation: pulseRing 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* Subtle Shake Animation for Invalid Inputs */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* Fade In Transition for Feedback & Modals */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+/* Glassmorphism Panel Utilities */
+.glass-panel {
+  background: rgba(30, 41, 59, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-modal {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Blood Drop Badge Aesthetics */
+.blood-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.blood-badge-universal {
+  background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%);
+  border: 1px solid #f87171;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.blood-badge-standard {
+  background: #1e293b;
+  border: 1px solid #475569;
+  color: #f1f5f9;
+}
+
+/* Urgency Status Tags */
+.urgency-critical {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.urgency-high {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.urgency-medium {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+/* Active Nav Tab Indicator */
+.nav-tab.active {
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+}
+
+.nav-tab:not(.active) {
+  background: transparent;
+  color: #94a3b8;
+}
+
+.nav-tab:not(.active):hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+}
+
+/* Form Controls Validation Polish */
+input.is-invalid, select.is-invalid, textarea.is-invalid {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+}
+
+input.is-valid, select.is-valid, textarea.is-valid {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15) !important;
+}
+
+input.is-warning, select.is-warning, textarea.is-warning {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15) !important;
+}
+
+/* Interactive Table Row Hover */
+.interactive-row {
+  transition: all 0.15s ease-in-out;
+}
+
+.interactive-row:hover {
+  background-color: rgba(51, 65, 85, 0.45);
+}
+
+/* Compatibility Matrix Grid Cell Styling */
+.compat-cell-yes {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  font-weight: 700;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.compat-cell-no {
+  background: rgba(15, 23, 42, 0.5);
+  color: #475569;
+}
+
+/* Toast Notifications Container */
+#toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 24rem;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
